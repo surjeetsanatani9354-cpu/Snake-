@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Center </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Full Screen Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* No scrolling */
+            background: #020617;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Full Screen App Wrapper */
+        .app-wrapper {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            position: relative;
+        }
+
+        /* Glow Background Effect */
+        .app-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 20%;
+            width: 300px;
+            height: 300px;
+            background: #3b82f6;
+            filter: blur(150px);
+            opacity: 0.15;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        /* Content Container */
+        .content {
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .main-icon {
+            font-size: clamp(60px, 15vw, 90px);
+            margin-bottom: 20px;
+            display: block;
+            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.4));
+        }
+
+        h2 {
+            color: #ffffff;
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: 900;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        /* High-Quality Premium Buttons */
+        .btn-ui {
+            width: 100%;
+            padding: clamp(16px, 4vh, 22px);
+            margin-bottom: 16px;
+            border: none;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .btn-blue {
+            background: #3b82f6;
+            color: white;
+            border-bottom: 4px solid #1d4ed8;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #000;
+            border-bottom: 4px solid #b45309;
+        }
+
+        .btn-locked {
+            background: #1e293b !important;
+            color: #475569 !important;
+            border-bottom: 4px solid #0f172a !important;
+            cursor: not-allowed;
+            box-shadow: none;
+            opacity: 0.8;
+        }
+
+        .btn-ui:active {
+            transform: translateY(2px) scale(0.98);
+            border-bottom-width: 0px;
+            margin-bottom: 20px; /* Offset to keep position */
+        }
+
+        /* Hide logic */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <div class="content">
+        <span class="main-icon">🐍</span>
+        <h2 id="appTitle">Game Center</h2>
+
+        <button id="btn1" class="btn-ui btn-blue">
+            <i class="fas fa-unlock-alt"></i> Unlock Game
+        </button>
+
+        <button id="btn2" class="btn-ui btn-gold btn-locked">
+            <i class="fas fa-lock"></i> Locked
+        </button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyDnM9ry5JreqjRXqQVUSiaBzudXuaAF-QI", 
+        databaseURL: "https://send-message-b178e-default-rtdb.asia-southeast1.firebasedatabase.app" 
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Get or Create Device UID
+    const DEVICE_ID = localStorage.getItem("device_uid") || "DEV-" + Math.random().toString(36).slice(2, 12);
+    localStorage.setItem("device_uid", DEVICE_ID);
+
+    // References
+    const b1 = document.getElementById('btn1');
+    const b2 = document.getElementById('btn2');
+
+    // 1. Fetch Links
+    let links = { link1: "#", link2: "#" };
+    onValue(ref(db, 'appSettings'), (snap) => {
+        if(snap.exists()) links = snap.val();
+    });
+
+    // 2. Real-time Device Auth Check
+    onValue(ref(db, 'unlockedDevices/' + DEVICE_ID), (snap) => {
+        const isUnlocked = snap.val() === true;
+
+        // Button 1 logic (URL from link1)
+        b1.onclick = () => { window.location.href = links.link1; };
+
+        if (isUnlocked) {
+            // Full screen transition: Hide unlock, show premium
+            b1.classList.add('hidden');
+            b2.classList.remove('btn-locked');
+            b2.innerHTML = '<i class="fas fa-bolt"></i> Start  Game';
+            b2.onclick = () => { window.location.href = links.link2; };
+        } else {
+            // Reset to default locked state
+            b1.classList.remove('hidden');
+            b2.classList.add('btn-locked');
+            b2.innerHTML = '<i class="fas fa-lock"></i> Locked';
+            b2.onclick = () => { alert("Premium not unlocked for this device."); };
+        }
+    });
+</script>
+
+</body>
+</html>
